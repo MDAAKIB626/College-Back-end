@@ -34,7 +34,6 @@ export const verifyOtp = async (req, res) => {
   try {
     const { email, otp, password, role } = req.body;
 
-    // 🚫 STEP 4 FIX – ADMIN BLOCK
     if (role === "admin") {
       return res.status(403).json({
         message: "Admin cannot be created via OTP"

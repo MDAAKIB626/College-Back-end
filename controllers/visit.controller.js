@@ -38,13 +38,14 @@ export const getVisitById = async (req, res) => {
   }
 };
 
-/* ================= CREATE VISIT (ADMIN) – SIMPLE ================= */
+/* ================= CREATE VISIT (ADMIN) ================= */
 export const createVisit = async (req, res) => {
   try {
     const visit = await Visit.create({
       school: req.body.school,
       className: req.body.className,
       visitDate: req.body.visitDate,
+      schoolLocation: req.body.schoolLocation,
       teachers: req.body.teachers || [],
       relationOfficers: req.body.relationOfficers || [],
       speaker: req.body.speaker,

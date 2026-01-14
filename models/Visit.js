@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
 
+/* ================= REMARK ================= */
 const remarkSchema = new mongoose.Schema({
   text: String,
   date: { type: Date, default: Date.now },
 });
 
+/* ================= STUDENT ================= */
 const studentSchema = new mongoose.Schema({
   studentName: String,
   studentMobile: String,
@@ -17,31 +19,24 @@ const studentSchema = new mongoose.Schema({
   remarks: [remarkSchema],
 });
 
+/* ================= VISIT ================= */
 const visitSchema = new mongoose.Schema({
-  school: String,
-  className: String,
-  visitDate: String,
-
-  // 🔥 ADD THESE
-  speaker: {
+  school: { type: String, required: true },
+  className: { type: String, required: true },
+  visitDate: { type: String, required: true },
+  schoolLocation: {
     type: String,
-    default: "",
+    enum: ["Malegaon", "Outside"],
+    default: "Malegaon",
+    required: true,
   },
-  peon: {
-    type: String,
-    default: "",
-  },
-
+  speaker: { type: [String], default: [], required: true },
+  peon: { type: String, default: "" },
   teachers: [{ email: String }],
   relationOfficers: [{ email: String, accepted: Boolean }],
-
   status: { type: String, default: "Pending" },
-
   schoolData: {
-    principal: {
-      name: String,
-      contact: String,
-    },
+    principal: { name: String, contact: String },
     students: [studentSchema],
     totalStudents: Number,
     boys: Number,
