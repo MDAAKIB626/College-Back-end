@@ -2,8 +2,10 @@ import mongoose from "mongoose";
 
 /* ================= REMARK ================= */
 const remarkSchema = new mongoose.Schema({
-  text: String,
-  date: { type: Date, default: Date.now },
+  date: String,
+  received: String,
+  updatedBy: String,
+  updatedAt: Date,
 });
 
 /* ================= STUDENT ================= */
@@ -21,28 +23,71 @@ const studentSchema = new mongoose.Schema({
 
 /* ================= VISIT ================= */
 const visitSchema = new mongoose.Schema({
-  school: { type: String, required: true },
-  className: { type: String, required: true },
-  visitDate: { type: String, required: true },
-  schoolLocation: {
-    type: String,
-    enum: ["Malegaon", "Outside"],
-    default: "Malegaon",
-    required: true,
-  },
-  speaker: { type: [String], default: [], required: true },
-  peon: { type: String, default: "" },
+  school: String,
+  className: String,
+  visitDate: String,
+
+  locationType: {
+  type: String,
+  enum: ["Malegaon", "Outside"],
+  required: true,
+},
+
+
+  outsideLocation: String,
+
+
+  speakers: [String],
+
+
   teachers: [{ email: String }],
-  relationOfficers: [{ email: String, accepted: Boolean }],
-  status: { type: String, default: "Pending" },
+
+  relationOfficers: [
+    {
+      email: String,
+      accepted: { type: Boolean, default: true },
+      assignedStudents: Number,
+    },
+  ],
+
+  status: {
+    type: String,
+    enum: [
+      "CREATED",
+      "RO_UPLOADED",
+      "ADMIN_ASSIGNED",
+      "STAFF_UPDATED",
+      "ADMIN_VERIFIED",
+    ],
+    default: "CREATED",
+  },
+
   schoolData: {
-    principal: { name: String, contact: String },
+    principal: {
+      name: String,
+      contact: String,
+    },
+
     students: [studentSchema],
-    totalStudents: Number,
-    boys: Number,
-    girls: Number,
-    mhtCetAppeared: Number,
-    admissionTaken: Number,
+
+    roWiseStudents: [
+      {
+        roEmail: String,
+        students: [studentSchema],
+        submittedAt: Date,
+      },
+    ],
+
+    staffAssignments: [
+      {
+        staffEmail: String,
+        students: [studentSchema],
+        updatedAt: Date,
+      },
+    ],
+
+    verifiedBy: String,
+    verifiedAt: Date,
   },
 });
 
