@@ -20,7 +20,7 @@ export const getVisits = async (req, res) => {
     }
 
     res.json([]);
-  } catch {
+  } catch (err) {
     res.status(500).json({ message: "Failed to fetch visits" });
   }
 };
@@ -28,11 +28,12 @@ export const getVisits = async (req, res) => {
 /* ================= GET SINGLE ================= */
 export const getVisitById = async (req, res) => {
   const visit = await Visit.findById(req.params.id);
-  if (!visit) return res.status(404).json({ message: "Visit not found" });
+  if (!visit) {
+    return res.status(404).json({ message: "Visit not found" });
+  }
   res.json(visit);
 };
 
-/* ================= CREATE ================= */
 /* ================= CREATE ================= */
 export const createVisit = async (req, res) => {
   const visit = await Visit.create({
@@ -43,7 +44,6 @@ export const createVisit = async (req, res) => {
   res.status(201).json(visit);
 };
 
-
 /* ================= RO UPLOAD ================= */
 export const roUpload = async (req, res) => {
   const visit = await Visit.findById(req.params.id);
@@ -51,9 +51,7 @@ export const roUpload = async (req, res) => {
     return res.status(404).json({ message: "Visit not found" });
   }
 
-  if (!visit.schoolData) {
-    visit.schoolData = {};
-  }
+  if (!visit.schoolData) visit.schoolData = {};
   if (!visit.schoolData.roWiseStudents) {
     visit.schoolData.roWiseStudents = [];
   }
@@ -68,7 +66,6 @@ export const roUpload = async (req, res) => {
     });
   }
 
-  // ✅✅ MAIN FIX — PRINCIPAL SAVE
   visit.schoolData.principal = req.body.principal;
 
   visit.schoolData.roWiseStudents.push({
@@ -83,7 +80,7 @@ export const roUpload = async (req, res) => {
   res.json({ message: "RO data submitted successfully" });
 };
 
-
+/* ================= ADMIN ASSIGN ================= */
 export const adminAssign = async (req, res) => {
   try {
     const visit = await Visit.findById(req.params.id);
@@ -91,62 +88,50 @@ export const adminAssign = async (req, res) => {
       return res.status(404).json({ message: "Visit not found" });
     }
 
-    // ensure array exists
     if (!visit.schoolData.staffAssignments) {
       visit.schoolData.staffAssignments = [];
     }
 
-    // 🔒 all already assigned student IDs (GLOBAL)
+    // 🔒 already assigned students (global)
     const alreadyAssigned = new Set(
       visit.schoolData.staffAssignments.flatMap(sa =>
         sa.students.map(st => st._id.toString())
       )
     );
 
-    // loop assignments from request
     req.body.staffAssignments.forEach(assign => {
       let staffBlock = visit.schoolData.staffAssignments.find(
         s => s.staffEmail === assign.staffEmail
       );
 
-      // create block if not exists
       if (!staffBlock) {
         staffBlock = {
           staffEmail: assign.staffEmail,
           students: [],
-            submitted: false,   // 🔥 YE LINE ADD KARO
-          assignedAt: new Date(),
+          submitted: false,
+          updatedAt: new Date(),
         };
         visit.schoolData.staffAssignments.push(staffBlock);
       }
 
-      // find students from RO blocks
       visit.schoolData.roWiseStudents.forEach(ro => {
         assign.students.forEach(studentId => {
           const sid = studentId.toString();
-
-          // ❌ already assigned somewhere
           if (alreadyAssigned.has(sid)) return;
 
           const student = ro.students.id(studentId);
           if (!student) return;
 
-          // ✅ PUSH WITH SAME _id (IMPORTANT FIX)
+          // 🔥🔥 MAIN FIX (MASTER DATA)
+          student.assigned = true;
+
+          // STAFF COPY
           staffBlock.students.push({
-            _id: student._id,
-            studentName: student.studentName,
-            studentMobile: student.studentMobile,
-            parentMobile: student.parentMobile,
-            className: student.className,
-            gender: student.gender,
-            interestedBranch: student.interestedBranch,
-            mhtCet: student.mhtCet,
-            admissionProcess: student.admissionProcess,
-            remarks: student.remarks || [],
-            assignedTo: assign.staffEmail,
+            ...student.toObject(),
+            assigned: true,
           });
 
-          alreadyAssigned.add(sid); // lock globally
+          alreadyAssigned.add(sid);
         });
       });
     });
@@ -154,16 +139,12 @@ export const adminAssign = async (req, res) => {
     visit.status = "ADMIN_ASSIGNED";
     await visit.save();
 
-    res.json({
-      message: "✅ Students assigned correctly (duplicate blocked)",
-    });
-
+    res.json({ message: "Students assigned successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Assign failed" });
   }
 };
-
 
 /* ================= STAFF UPDATE ================= */
 export const staffUpdate = async (req, res) => {
@@ -174,27 +155,35 @@ export const staffUpdate = async (req, res) => {
     s => s.staffEmail === staffEmail
   );
 
+  if (!block) {
+    return res.status(404).json({ message: "Staff not found" });
+  }
+
+  const updatedCount = students.filter(
+    s =>
+      s.admissionProcess === "Yes" ||
+      (s.remarks && s.remarks.length > 0)
+  ).length;
+
   block.students = students;
   block.updatedAt = new Date();
-  block.submitted = true;   // 🔥 IMPORTANT
+  block.submittedAt = new Date();
+  block.submitted = true;
+  block.updatedCount = updatedCount;
 
-  // 🔥 check if ALL teachers submitted
-  const allSubmitted = visit.schoolData.staffAssignments.every(
-    s => s.submitted === true
-  );
-
-  if (allSubmitted) {
-    visit.status = "STAFF_UPDATED";
-  }
+  // 🔥 MAIN FIX
+  visit.status = "STAFF_UPDATED";
 
   await visit.save();
 
-  res.json({ message: "Staff updated" });
+  res.json({
+    message: "Staff updated",
+    updatedCount,
+  });
 };
 
 
-/* ================= REMARK ================= */
-/* ================= REMARK (TEACHER FLOW) ================= */
+/* ================= UPDATE REMARK ================= */
 export const updateStudentRemark = async (req, res) => {
   try {
     const { studentIndex, remarkIndex, remark } = req.body;
@@ -208,11 +197,7 @@ export const updateStudentRemark = async (req, res) => {
       s => s.staffEmail === req.user.email
     );
 
-    if (!staffBlock) {
-      return res.status(404).json({ message: "Staff assignment not found" });
-    }
-
-    if (!staffBlock.students[studentIndex]) {
+    if (!staffBlock || !staffBlock.students[studentIndex]) {
       return res.status(400).json({ message: "Student not found" });
     }
 
@@ -226,22 +211,17 @@ export const updateStudentRemark = async (req, res) => {
       updatedAt: new Date(),
     };
 
-    // 🔥 sync for admin view
-    visit.schoolData.students =
-      visit.schoolData.staffAssignments.flatMap(s => s.students);
+    // ❌ duplicate sync removed (IMPORTANT FIX)
 
     await visit.save();
     res.json({ message: "Remark updated successfully" });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to save remark" });
   }
 };
 
-
-
-/* ================= ADMISSION ================= */
+/* ================= UPDATE ADMISSION ================= */
 export const updateAdmission = async (req, res) => {
   try {
     const { studentIndex, admissionProcess } = req.body;
@@ -259,12 +239,11 @@ export const updateAdmission = async (req, res) => {
       return res.status(400).json({ message: "Student not found" });
     }
 
-    // ✅ 1️⃣ update teacher copy
     const updatedStudent = staffBlock.students[studentIndex];
     updatedStudent.admissionProcess = admissionProcess;
     staffBlock.updatedAt = new Date();
 
-    // ✅ 2️⃣ 🔥 update RO ORIGINAL data
+    // 🔥 update ORIGINAL RO data
     visit.schoolData.roWiseStudents.forEach(ro => {
       ro.students.forEach(st => {
         if (st.studentMobile === updatedStudent.studentMobile) {
@@ -273,19 +252,15 @@ export const updateAdmission = async (req, res) => {
       });
     });
 
-    // ✅ 3️⃣ rebuild admin summary source
-    visit.schoolData.students =
-      visit.schoolData.roWiseStudents.flatMap(r => r.students);
+    // ❌ rebuild admin summary removed
 
     await visit.save();
-    res.json({ message: "✅ Admission updated everywhere" });
-
+    res.json({ message: "Admission updated successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to update admission" });
   }
 };
-
 
 /* ================= ADMIN VERIFY ================= */
 export const adminVerify = async (req, res) => {

@@ -19,6 +19,7 @@ const studentSchema = new mongoose.Schema({
   mhtCet: String,
   admissionProcess: String,
   remarks: [remarkSchema],
+    assigned: { type: Boolean, default: false }, // 🔥 IMPORTANT
 });
 
 /* ================= VISIT ================= */
@@ -28,17 +29,13 @@ const visitSchema = new mongoose.Schema({
   visitDate: String,
 
   locationType: {
-  type: String,
-  enum: ["Malegaon", "Outside"],
-  required: true,
-},
-
+    type: String,
+    enum: ["Malegaon", "Outside"],
+    required: true,
+  },
 
   outsideLocation: String,
-
-
   speakers: [String],
-
 
   teachers: [{ email: String }],
 
@@ -68,12 +65,12 @@ const visitSchema = new mongoose.Schema({
       contact: String,
     },
 
-    students: [studentSchema],
+    students: [studentSchema], // ⚠️ ab USE nahi hoga
 
     roWiseStudents: [
       {
         roEmail: String,
-        students: [studentSchema],
+        students: [studentSchema], // ✅ MASTER DATA
         submittedAt: Date,
       },
     ],
@@ -81,8 +78,12 @@ const visitSchema = new mongoose.Schema({
     staffAssignments: [
       {
         staffEmail: String,
-        students: [studentSchema],
+        students: [studentSchema], // ⚠️ working copy
         updatedAt: Date,
+        submitted: { type: Boolean, default: false },
+          // 🔥 NEW (IMPORTANT)
+    updatedCount: { type: Number, default: 0 },
+    submittedAt: Date,
       },
     ],
 
