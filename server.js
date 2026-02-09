@@ -4,16 +4,17 @@ dotenv.config();
 import app from "./app.js";
 import connectDB from "./config/db.js";
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
   try {
-    await connectDB(); // DB connect karega
+    await connectDB();
     app.listen(PORT, () => {
       console.log("🚀 Server running on port " + PORT);
     });
   } catch (error) {
-    console.log("❌ Server start error:", error.message);
+    console.error("❌ Server start error:", error.message);
+    // ❌ process.exit(1);  ← ABHI MAT RAKHO
   }
 };
 
