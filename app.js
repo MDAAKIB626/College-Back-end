@@ -10,9 +10,10 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
-      "https://college-front-end-xi.vercel.app",
+      "http://localhost:3000",              // 👈 tumhara local frontend
+      "https://college-front-end-xi.vercel.app", // 👈 live frontend
     ],
+    credentials: true,
   })
 );
 
