@@ -14,7 +14,6 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error("❌ Server start error:", error.message);
-    // ❌ process.exit(1);  ← ABHI MAT RAKHO
   }
 };
 
