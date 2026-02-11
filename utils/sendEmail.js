@@ -1,18 +1,12 @@
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendEmail = async (to, otp) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"MMANTC INSPECTIONS" <${process.env.EMAIL_USER}>`,
+    const msg = {
       to,
+      from: "your_verified_email@gmail.com", // MUST be verified in SendGrid
       subject: "Your OTP Verification Code",
       html: `
         <div style="font-family: Arial;">
@@ -22,11 +16,13 @@ const sendEmail = async (to, otp) => {
           <p>This OTP is valid for <b>5 minutes</b>.</p>
         </div>
       `,
-    });
+    };
 
-    console.log("✅ OTP email sent to:", to, "OTP:", otp);
+    await sgMail.send(msg);
+
+    console.log("✅ OTP email sent to:", to);
   } catch (err) {
-    console.error("❌ Email error:", err.message);
+    console.error("❌ Email error:", err.response?.body || err.message);
     throw err;
   }
 };
