@@ -6,7 +6,7 @@ const sendEmail = async (to, otp) => {
   try {
     const msg = {
       to,
-      from: "your_verified_email@gmail.com", // MUST be verified in SendGrid
+      from: "admission.mmantc13@gmail.com", // MUST be verified in SendGrid
       subject: "Your OTP Verification Code",
       html: `
         <div style="font-family: Arial;">
