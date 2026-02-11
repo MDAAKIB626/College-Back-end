@@ -7,23 +7,22 @@ import userRoutes from "./routes/user.routes.js";
 
 const app = express();
 
-/* ================= SECURE CORS ================= */
-
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://college-front-end-xi.vercel.app",
-];
+/* ================= FIXED CORS ================= */
 
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      if (origin.startsWith("http://localhost")) {
+        return callback(null, true);
       }
+
+      if (origin.includes("vercel.app")) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
