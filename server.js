@@ -4,7 +4,12 @@ dotenv.config();
 import app from "./app.js";
 import connectDB from "./config/db.js";
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT;
+
+if (!PORT) {
+  console.error("PORT not defined!");
+  process.exit(1);
+}
 
 const startServer = async () => {
   try {
